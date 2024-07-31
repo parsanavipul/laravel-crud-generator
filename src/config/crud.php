@@ -66,6 +66,11 @@ return [
         'apiNamespace' => 'App\Http\Controllers\Api',
     ],
 
+    'eagerLoadRelationships' => [
+        'all' => 'false',
+        'load' => 'false',
+    ],
+    
     'resources' => [
         'namespace' => 'App\Http\Resources',
     ],
