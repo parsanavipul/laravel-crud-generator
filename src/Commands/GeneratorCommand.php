@@ -639,11 +639,10 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function buildOptions(): static
     {
-        echo "\n Option Built...";
 
 
         $options = $this->options();
-        echo "<pre>\n All options from command" . print_r($options, true) . "</pre> \n";
+
 
         $this->commandOptions['route'] = null;
 
@@ -664,11 +663,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         } else {
             $this->commandOptions['api'] = $this->generateAPI;
         }
-
-        echo "\n Validation Built..." . $this->commandOptions['generateValidation'];
-        echo "\n Stack Built..." . $this->commandOptions['stack'];
-        echo "\n API Built..." . $this->commandOptions['api'];
-
 
         return $this;
     }

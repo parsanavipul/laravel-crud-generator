@@ -28,6 +28,13 @@ composer require ibex/crud-generator --dev
 2- Publish the default package's config (optional)
 ```
 php artisan vendor:publish --tag=crud
+
+set configations 
+createLayout
+defaultStack
+generateAPI
+generateValidation
+eagerRelationships
 ```
 
 
