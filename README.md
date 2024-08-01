@@ -75,18 +75,28 @@ Route name in plural slug case.
 
   <img width="535" alt="image" src="https://github.com/awais-vteams/laravel-crud-generator/assets/10154558/c1e2e2a6-7fcd-4c4a-a393-56d8fe6eb231">
 ```
-php artisan make:crud {table_name} {bootstrap,tailwind,livewire,api}
+php artisan make:crud {table_name} 
 
-php artisan make:crud banks bootstrap  //This will create views in Bootstrap 5 using Blade
-php artisan make:crud banks tailwind   //This will create views in Tailwind css using Blade
-php artisan make:crud banks livewire   //This will create views in Tailwind css with Livewire components
-php artisan make:crud banks api        //This will create API only controllers
+php artisan make:crud banks --stack=bootstrap  //This will create views in Bootstrap 5 using Blade
+php artisan make:crud banks --stack=tailwind   //This will create views in Tailwind css using Blade
+php artisan make:crud banks --stack=livewire   //This will create views in Tailwind css with Livewire components
+php artisan make:crud banks --stack=api        //This will create API only controllers
 ```
  - Custom Route
 ```
 php artisan make:crud {table_name} --route={route_name}
-```
 
+```
+ - Update validation generation on the fly
+```
+php artisan make:crud {table_name} ----generateValidation={yes/no} // if you pass this then it will ignore the config setting
+
+```
+ - Update api generation on the fly
+```
+php artisan make:crud {table_name} ----api={yes/no} // if you pass this then it will ignore the config setting
+
+```
 
 ## Examples
 
