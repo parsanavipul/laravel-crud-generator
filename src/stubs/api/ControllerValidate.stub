@@ -5,6 +5,7 @@ namespace {{apiControllerNamespace}};
 use {{modelNamespace}}\{{modelName}};
 {{relationsModels}}
 use Illuminate\Http\Request;
+use {{requestNamespace}}\{{modelName}}Request;
 use Illuminate\Http\Response;
 use {{controllerNamespace}}\Controller;
 use {{resourceNamespace}}\{{modelName}}Resource;
@@ -14,7 +15,6 @@ class {{modelName}}Controller extends Controller
     /**
      * Display a listing of the resource.
      */
-     // {{lazyLoadRelationships}}
     public function index(Request $request)
     {
         ${{modelNamePluralLowerCase}} = {{modelName}}::with([{{relationShipNames}}])->paginate();
@@ -25,7 +25,7 @@ class {{modelName}}Controller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): {{modelName}}
+    public function store({{modelName}}Request $request): {{modelName}}
     {
         return {{modelName}}::create($request->validated());
     }
@@ -35,14 +35,14 @@ class {{modelName}}Controller extends Controller
      */
     public function show({{modelName}} ${{modelNameLowerCase}}): {{modelName}}
     {
-        {{relationsData}}
+         {{relationsData}} 
         return ${{modelNameLowerCase}};
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, {{modelName}} ${{modelNameLowerCase}}): {{modelName}}
+    public function update({{modelName}}Request $request, {{modelName}} ${{modelNameLowerCase}}): {{modelName}}
     {
         ${{modelNameLowerCase}}->update($request->validated());
 

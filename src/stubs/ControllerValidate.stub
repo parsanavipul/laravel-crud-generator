@@ -6,6 +6,7 @@ use {{modelNamespace}}\{{modelName}};
 {{relationsModels}}
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use {{requestNamespace}}\{{modelName}}Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
@@ -32,7 +33,7 @@ class {{modelName}}Controller extends Controller
     {
         ${{modelNameLowerCase}} = new {{modelName}}();
 
-        {{relationsData}}
+        {{relationsData}}        
         //return view('{{modelView}}.create', compact('{{modelNameLowerCase}}'));
         return view('{{modelView}}.create', compact(['{{modelNameLowerCase}}',{{relationsCompact}}]));
     }
@@ -40,7 +41,7 @@ class {{modelName}}Controller extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store({{modelName}}Request $request): RedirectResponse
     {
         {{modelName}}::create($request->validated());
 
@@ -65,16 +66,15 @@ class {{modelName}}Controller extends Controller
     {
         ${{modelNameLowerCase}} = {{modelName}}::find($id);
 
-        {{relationsData}}
+       {{relationsData}}
         //return view('{{modelView}}.edit', compact('{{modelNameLowerCase}}'));
         return view('{{modelView}}.edit', compact(['{{modelNameLowerCase}}',{{relationsCompact}}]));
-
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, {{modelName}} ${{modelNameLowerCase}}): RedirectResponse
+    public function update({{modelName}}Request $request, {{modelName}} ${{modelNameLowerCase}}): RedirectResponse
     {
         ${{modelNameLowerCase}}->update($request->validated());
 

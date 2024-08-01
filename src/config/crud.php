@@ -42,6 +42,9 @@ return [
 
     'layout' => 'layouts.app',
 
+    /* can be yes or no */
+    'createLayout' => 'no',
+
     'model' => [
         'namespace' => 'App\Models',
 
@@ -58,6 +61,9 @@ return [
             'created_at',
             'updated_at',
             'deleted_at',
+            'created_by',
+            'updated_by',
+            'deleted_by',
         ],
     ],
 
@@ -66,11 +72,23 @@ return [
         'apiNamespace' => 'App\Http\Controllers\Api',
     ],
 
-    'eagerLoadRelationships' => [
-        'all' => 'false',
-        'load' => 'false',
+    /* can be tailwind,livewire,react,vue or bootstrap */
+    'defaultStack' => 'bootstrap',
+
+    /* can be yes or no */
+    'generateAPI' => 'no',
+
+    /* can be yes or no */
+    'generateValidation' => 'yes',
+
+
+    'eagerRelationships' => [
+        /* can be false,yes or all */
+        'load' => 'yes',
+        /* can be yes or no if need to add relationship data with compact into view */
+        'addRelationshipDataInView' => 'yes'
     ],
-    
+
     'resources' => [
         'namespace' => 'App\Http\Resources',
     ],
