@@ -79,6 +79,8 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
 
     protected $relationsModels = "";
+    protected $relationsFields = "";
+
     protected $relationsModelsArray = null;
 
     /**
@@ -116,12 +118,21 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function getRlationships()
     {
+        echo "\n\n set relationship fields ".date('d-M-Y H:i:s');
         $properties = '*';
 
         if ($this->eagerRelationshipsLoad != 'false') {
             $this->relationsNames = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getLazyLoadRelationsips($this->eagerRelationshipsLoad);
             $this->relationsNamesArray = explode(",", $this->relationsNames);
+
+
+
+            $relationsFieldsLocal = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getLazyLoadRelationsipFields($this->eagerRelationshipsLoad);
+
+            $this->relationsFields = explode(",", $relationsFieldsLocal);
         }
+
+        echo " ...ends at ".date('d-M-Y H:i:s');
     }
     /**
      * Build the replacement.
@@ -130,6 +141,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function getRlationshipsTables()
     {
+        echo "\n\n set relationship models  ".date('d-M-Y H:i:s');
         $properties = '*';
 
         if ($this->addRelationshipDataInView == 'yes') {
@@ -142,7 +154,10 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
                 $this->relationsModelsArray[$key] = "$" . $relationshipmodel;
             }
         }
+
+        echo " ...ends at ".date('d-M-Y H:i:s');
     }
+
 
     /**
      * Generate the controller.
@@ -357,12 +372,70 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             '{{lazyLoadRelationships}}' => $this->eagerRelationshipsLoad,
             '{{relationsModels}}' => $this->relationsModels,
 
+
         ];
     }
 
     protected function _getRoute()
     {
         return $this->commandOptions['route'] ?? Str::kebab(Str::plural($this->name));
+    }
+
+
+    /**
+     * Build the form fields for view.
+     *
+     * @param $title
+     * @param $column
+     * @param  string  $type
+     *
+     * @return string
+     * @throws FileNotFoundException
+     *
+     */
+    protected function getField($title, $column, string $type = 'form-field'): string
+    {
+
+        $replace = array_merge($this->buildReplacements(), [
+            '{{title}}' => $title,
+            '{{column}}' => $column,
+            '{{column_snake}}' => Str::snake($column),
+        ]);
+
+
+        $columnName = $column;
+        $columnName =  trim(Str::title(Str::camel(Str::singular(($column)))));
+        $found = 0;
+        foreach ($this->relationsNamesArray as $relationship) {
+            $relationship = trim(str_replace('"', "", $relationship));
+            if (strtolower($relationship) == strtolower($columnName)) {
+                $found = 1;
+
+                $replace = array_merge($this->buildReplacements(), [
+                    '{{title}}' => $title,
+                    '{{column}}' => $column,
+                    '{{column_snake}}' => Str::snake($column),
+                    '{{columnName}}' => $columnName,
+                ]);
+                break;
+            }
+        }
+
+
+        if ($found == 1) {;
+            $type = "view-field-relationship";
+            return str_replace(
+                array_keys($replace),
+                array_values($replace),
+                $this->getStub("views/{$this->commandOptions['stack']}/$type")
+            );
+        } else {
+            return str_replace(
+                array_keys($replace),
+                array_values($replace),
+                $this->getStub("views/{$this->commandOptions['stack']}/$type")
+            );
+        }
     }
 
 
@@ -377,12 +450,13 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      * @throws FileNotFoundException
      *
      */
-    protected function getField($title, $column, string $type = 'form-field'): string
+    protected function getFieldControl($title, $column, string $type = 'form-field', $relationshipName = ""): string
     {
         $replace = array_merge($this->buildReplacements(), [
             '{{title}}' => $title,
             '{{column}}' => $column,
             '{{column_snake}}' => Str::snake($column),
+            '{{relationshipName}}' => $relationshipName,
         ]);
 
         return str_replace(

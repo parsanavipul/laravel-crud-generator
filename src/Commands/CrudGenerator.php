@@ -54,6 +54,7 @@ class CrudGenerator extends GeneratorCommand
         }
 
 
+
         $this->getRlationships();
         $this->getRlationshipsTables();
         // Build the class name from table name
@@ -175,7 +176,7 @@ class CrudGenerator extends GeneratorCommand
 
         echo "\n...stack..." . $this->commandOptions['stack'];
         echo "\n...generate validation..." . $this->commandOptions['generateValidation'];
-        echo "\n...generate API..." . $this->commandOptions['api'];
+        echo "\n...generate API..." . $this->commandOptions['api'] . "\n";
 
         $apiControllerPath = $this->_getApiControllerPath($this->name);
         $apistubFolder =  'api/';
@@ -196,8 +197,8 @@ class CrudGenerator extends GeneratorCommand
         $modelVariables = "";
         foreach ($this->relationsModelsArray as $modelName) {
             $modelName = trim(str_replace("$", "", trim($modelName)));
-            $modelVariables .= "'" . Str::camel($modelName) . "',";
-            $modelData .= "\n " . "$" . Str::camel($modelName) . "=" . str_replace("$", "", trim($modelName)) . "::get();";
+            $modelVariables .= "'" . Str::camel($modelName) . "s',";
+            $modelData .= "\n " . "$" . Str::camel($modelName) . "s=" . str_replace("$", "", trim($modelName)) . "::get();";
         }
         $modelVariables = rtrim($modelVariables, ',');
 
@@ -205,11 +206,16 @@ class CrudGenerator extends GeneratorCommand
 
 
         $relationsLoad = array(
+
             '{{relationsCompact}}' => $modelVariables,
             '{{relationsData}}' => $modelData,
+
         );
         $replace = array_merge($relationsLoad, $this->buildReplacements());
 
+
+        echo "<pre>" . print_r($replace, true) . "</pre>";
+        // exit;
 
         if ($this->commandOptions['api'] == 'yes') {
 
@@ -364,14 +370,25 @@ class CrudGenerator extends GeneratorCommand
         $form = "\n";
 
         foreach ($this->getFilteredColumns() as $column) {
-            $title = Str::title(str_replace('_', ' ', $column));
 
+
+            $title = Str::title(str_replace('_', ' ', $column));
             $tableHead .= $this->getHead($title);
             $tableBody .= $this->getBody($column);
             $viewRows .= $this->getField($title, $column, 'view-field');
-            $form .= $this->getField($title, $column);
-        }
 
+            // echo "\n $column";
+
+            if (in_array($column, $this->relationsFields)) {
+                $relationshipName = Str::ucfirst(Str::camel($column));
+                $relationData = Str::camel($relationshipName) . "s";
+                // echo "\n $column";
+                // echo "\n" . $relationData;
+                $form .= $this->getFieldControl($title, $column, "select", $relationData);
+            } else {
+                $form .= $this->getField($title, $column);
+            }
+        }
         $replace = array_merge($this->buildReplacements(), [
             '{{tableHeader}}' => $tableHead,
             '{{tableBody}}' => $tableBody,

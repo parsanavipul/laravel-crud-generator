@@ -37,9 +37,15 @@ class ModelGenerator
      * @return array
      */
 
+
+    public function getLazyLoadRelationsipFields($all = "")
+    {
+        return $this->_getTableRelationNames($all, true);
+    }
+
     public function getLazyLoadRelationsips($all = "")
     {
-        return $this->_getTableRelationNames($all);
+        return $this->_getTableRelationNames($all, false);
     }
     /**
      * Get all the eloquent relations tables.
@@ -49,7 +55,7 @@ class ModelGenerator
 
     public function getLazyLoadRelationsipsTables($all = "")
     {
-        return $this->_getTableRelationTableNames($all);
+        return $this->_getTableRelationTableNames($all, false);
     }
 
     public function getEloquentRelations()
@@ -59,7 +65,8 @@ class ModelGenerator
 
     private function _init()
     {
-        foreach ($this->_getTableRelations() as $relation) {
+        $allRelations = $this->_getTableRelations();
+        foreach ($allRelations as $relation) {
             $this->functions .= $this->_getFunction($relation);
         }
     }
@@ -94,12 +101,12 @@ class ModelGenerator
      *
      * @return array
      */
-    private function _getTableRelationNames($all)
+    private function _getTableRelationNames($all, $exportOnlyFields = false)
     {
         if ($all == "all") {
-            return  $this->getBelongsToNames() . $this->getOtherRelationNames();
+            return  $this->getBelongsToNames("", $exportOnlyFields) . $this->getOtherRelationNames("", $exportOnlyFields);
         }
-        return  $this->getBelongsToNames();
+        return  $this->getBelongsToNames("", $exportOnlyFields);
     }
 
     /**
@@ -107,21 +114,24 @@ class ModelGenerator
      *
      * @return array
      */
-    private function _getTableRelationTableNames($all)
+    private function _getTableRelationTableNames($all, $exportOnlyFields = false)
     {
         $findTableNames = "true";
         if ($all == "all") {
-            return  $this->getBelongsToNames($findTableNames) . $this->getOtherRelationNames($findTableNames);
+            return  $this->getBelongsToNames($findTableNames, $exportOnlyFields) . $this->getOtherRelationNames($findTableNames, $exportOnlyFields);
         }
-        return  $this->getBelongsToNames($findTableNames);
+        return  $this->getBelongsToNames($findTableNames, $exportOnlyFields);
     }
 
-    protected function getBelongsToNames($tableNames = "")
+    protected function getBelongsToNames($tableNames = "", $exportOnlyFields = false)
     {
+
+        echo "\n\n called get belongs to relationship names at " . date('d-M-Y H:i:s');
         $relations = Schema::getForeignKeys($this->table);
 
         $eloquent = [];
         $foundClasses = [];
+        $relationshipColumns = [];
 
         foreach ($relations as $relation) {
             if (count($relation['foreign_columns']) != 1 || count($relation['columns']) != 1) {
@@ -140,24 +150,37 @@ class ModelGenerator
                 if (!in_array($modelNameCheck, $foundClasses)) {
                     $foundClasses[] = $modelNameCheck;
                     $eloquent[] =  $modelNameCheck;
+                    $relationshipColumns[] = $relation['columns'][0];
                 }
             } else {
                 $eloquent[] = '"' . $relationshipName . '"';
+                $relationshipColumns[] = $relation['columns'][0];
             }
         }
 
         $return = "";
+
         if (!empty($eloquent)) {
             $return = implode(', ', $eloquent);
         }
+        if (!empty($relationshipColumns)) {
+            if ($exportOnlyFields == true) {
+                $return = implode(',', $relationshipColumns);
+            }
+        }
+
+        echo " ...ends at " . date('d-M-Y H:i:s');
         return $return;
     }
 
-    protected function getOtherRelationNames($tableNames = "")
+    protected function getOtherRelationNames($tableNames = "", $exportOnlyFields = false)
     {
         $tables = Schema::getTableListing();
         $eloquent = [];
         $foundClasses = [];
+        $relationshipColumns = [];
+
+        echo "\n\n called get other relationship names at " . date('d-M-Y H:i:s');
 
         foreach ($tables as $table) {
             $relations = Schema::getForeignKeys($table);
@@ -180,16 +203,26 @@ class ModelGenerator
                     if (!in_array($modelNameCheck, $foundClasses)) {
                         $foundClasses[] = $modelNameCheck;
                         $eloquent[] = $modelNameCheck;
+                        $relationshipColumns[] = $relation['columns'][0];
                     }
                 } else {
                     $eloquent[] = '"' . $relationshipName . '"';
+                    $relationshipColumns[] = $relation['columns'][0];
                 }
             }
         }
         $return = "";
+
         if (!empty($eloquent)) {
             $return = implode(', ', $eloquent);
         }
+        if (!empty($relationshipColumns)) {
+            if ($exportOnlyFields == true) {
+                $return = implode(',', $relationshipColumns);
+            }
+        }
+        echo " ...ends at " . date('d-M-Y H:i:s');
+
         return $return;
     }
 
@@ -208,6 +241,9 @@ class ModelGenerator
 
     protected function getBelongsTo()
     {
+
+        echo "\n\n called get belongs to relationship at " . date('d-M-Y H:i:s');
+
         $relations = Schema::getForeignKeys($this->table);
 
         $eloquent = [];
@@ -234,6 +270,8 @@ class ModelGenerator
             ];
         }
 
+        echo " ...ends at " . date('d-M-Y H:i:s');
+
         return $eloquent;
     }
 
@@ -241,6 +279,9 @@ class ModelGenerator
     {
         $tables = Schema::getTableListing();
         $eloquent = [];
+
+
+        echo "\n\n called get other relationship at " . date('d-M-Y H:i:s');
 
         foreach ($tables as $table) {
             $relations = Schema::getForeignKeys($table);
@@ -269,6 +310,7 @@ class ModelGenerator
             }
         }
 
+        echo " ...ends at " . date('d-M-Y H:i:s');
         return $eloquent;
     }
 
