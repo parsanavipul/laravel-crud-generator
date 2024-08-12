@@ -118,7 +118,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function getRlationships()
     {
-        echo "\n\n set relationship fields ".date('d-M-Y H:i:s');
+        // echo "\n\n set relationship fields ".date('d-M-Y H:i:s');
         $properties = '*';
 
         if ($this->eagerRelationshipsLoad != 'false') {
@@ -132,7 +132,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             $this->relationsFields = explode(",", $relationsFieldsLocal);
         }
 
-        echo " ...ends at ".date('d-M-Y H:i:s');
+        // echo " ...ends at ".date('d-M-Y H:i:s');
     }
     /**
      * Build the replacement.
@@ -141,7 +141,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function getRlationshipsTables()
     {
-        echo "\n\n set relationship models  ".date('d-M-Y H:i:s');
+        // echo "\n\n set relationship models  ".date('d-M-Y H:i:s');
         $properties = '*';
 
         if ($this->addRelationshipDataInView == 'yes') {
@@ -155,7 +155,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             }
         }
 
-        echo " ...ends at ".date('d-M-Y H:i:s');
+        // echo " ...ends at ".date('d-M-Y H:i:s');
     }
 
 

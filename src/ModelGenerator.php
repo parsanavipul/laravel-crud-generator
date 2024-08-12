@@ -126,7 +126,7 @@ class ModelGenerator
     protected function getBelongsToNames($tableNames = "", $exportOnlyFields = false)
     {
 
-        echo "\n\n called get belongs to relationship names at " . date('d-M-Y H:i:s');
+        // echo "\n\n called get belongs to relationship names at " . date('d-M-Y H:i:s');
         $relations = Schema::getForeignKeys($this->table);
 
         $eloquent = [];
@@ -169,7 +169,7 @@ class ModelGenerator
             }
         }
 
-        echo " ...ends at " . date('d-M-Y H:i:s');
+        // echo " ...ends at " . date('d-M-Y H:i:s');
         return $return;
     }
 
@@ -180,7 +180,7 @@ class ModelGenerator
         $foundClasses = [];
         $relationshipColumns = [];
 
-        echo "\n\n called get other relationship names at " . date('d-M-Y H:i:s');
+        // echo "\n\n called get other relationship names at " . date('d-M-Y H:i:s');
 
         foreach ($tables as $table) {
             $relations = Schema::getForeignKeys($table);
@@ -221,7 +221,7 @@ class ModelGenerator
                 $return = implode(',', $relationshipColumns);
             }
         }
-        echo " ...ends at " . date('d-M-Y H:i:s');
+        // echo " ...ends at " . date('d-M-Y H:i:s');
 
         return $return;
     }
@@ -242,7 +242,7 @@ class ModelGenerator
     protected function getBelongsTo()
     {
 
-        echo "\n\n called get belongs to relationship at " . date('d-M-Y H:i:s');
+        // echo "\n\n called get belongs to relationship at " . date('d-M-Y H:i:s');
 
         $relations = Schema::getForeignKeys($this->table);
 
@@ -270,7 +270,7 @@ class ModelGenerator
             ];
         }
 
-        echo " ...ends at " . date('d-M-Y H:i:s');
+        // echo " ...ends at " . date('d-M-Y H:i:s');
 
         return $eloquent;
     }
@@ -281,7 +281,7 @@ class ModelGenerator
         $eloquent = [];
 
 
-        echo "\n\n called get other relationship at " . date('d-M-Y H:i:s');
+        // echo "\n\n called get other relationship at " . date('d-M-Y H:i:s');
 
         foreach ($tables as $table) {
             $relations = Schema::getForeignKeys($table);
@@ -310,7 +310,7 @@ class ModelGenerator
             }
         }
 
-        echo " ...ends at " . date('d-M-Y H:i:s');
+        // echo " ...ends at " . date('d-M-Y H:i:s');
         return $eloquent;
     }
 

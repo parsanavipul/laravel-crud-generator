@@ -174,9 +174,9 @@ class CrudGenerator extends GeneratorCommand
             return $this;
         }
 
-        echo "\n...stack..." . $this->commandOptions['stack'];
-        echo "\n...generate validation..." . $this->commandOptions['generateValidation'];
-        echo "\n...generate API..." . $this->commandOptions['api'] . "\n";
+        // echo "\n...stack..." . $this->commandOptions['stack'];
+        // echo "\n...generate validation..." . $this->commandOptions['generateValidation'];
+        // echo "\n...generate API..." . $this->commandOptions['api'] . "\n";
 
         $apiControllerPath = $this->_getApiControllerPath($this->name);
         $apistubFolder =  'api/';
@@ -214,7 +214,7 @@ class CrudGenerator extends GeneratorCommand
         $replace = array_merge($relationsLoad, $this->buildReplacements());
 
 
-        echo "<pre>" . print_r($replace, true) . "</pre>";
+        // echo "<pre>" . print_r($replace, true) . "</pre>";
         // exit;
 
         if ($this->commandOptions['api'] == 'yes') {
