@@ -12,8 +12,12 @@ use Illuminate\Database\Eloquent\Model;
  */
 class {{modelName}} extends Model
 {
+
+
     {{softDeletes}}
+    protected $table = '{{modelTableName}}';
     protected $perPage = 20;
+     public $timestamps = {{timestampColumns}};
 
     /**
      * The attributes that are mass assignable.

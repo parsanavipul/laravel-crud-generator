@@ -24,8 +24,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Do not make these columns fillable in Model or views.
-     *
-     * @var array
      */
     protected array $unwantedColumns = [
         'id',
@@ -65,35 +63,40 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
     protected string $layout = 'layouts.app';
 
     protected string $eagerRelationshipsLoad = 'false';
-    protected string $addRelationshipDataInView = 'no';
-    protected string $defaultStack = 'boostrap';
-    protected string $generateValidation = 'no';
-    protected string $generateAPI = 'no';
-    protected string $createLayout = 'no';
 
+    protected string $addRelationshipDataInView = 'no';
+
+    protected string $defaultStack = 'boostrap';
+
+    protected string $generateValidation = 'no';
+
+    protected string $generateAPI = 'no';
+
+    protected string $createLayout = 'no';
 
     protected array $commandOptions = [];
 
-    protected $relationsNames = "";
+    protected $relationsNames = '';
+
     protected $relationsNamesArray = null;
 
+    protected $relationsModels = '';
 
-    protected $relationsModels = "";
-    protected $relationsFields = "";
+    protected $relationsFields = '';
+
+    protected $relationsTableColumnNamesArray = null;
 
     protected $relationsModelsArray = null;
 
     /**
      * Create a new controller creator command instance.
      *
-     * @param  Filesystem  $files
      *
      * @return void
      */
     public function __construct(Filesystem $files)
     {
         parent::__construct();
-
 
         $this->files = $files;
         $this->unwantedColumns = config('crud.model.unwantedColumns', $this->unwantedColumns);
@@ -109,6 +112,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         $this->generateValidation = config('crud.generateValidation', $this->generateValidation);
         $this->generateAPI = config('crud.generateAPI', $this->generateAPI);
         $this->createLayout = config('crud.createLayout', $this->createLayout);
+        $this->layout = config('crud.layout', $this->layout);
     }
 
     /**
@@ -122,18 +126,24 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         $properties = '*';
 
         if ($this->eagerRelationshipsLoad != 'false') {
-            $this->relationsNames = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getLazyLoadRelationsips($this->eagerRelationshipsLoad);
-            $this->relationsNamesArray = explode(",", $this->relationsNames);
+            $modelGenerator = (new ModelGenerator($this->table, $properties, $this->modelNamespace));
 
+            $this->relationsNames = $modelGenerator->getLazyLoadRelationsips($this->eagerRelationshipsLoad);
+            $this->relationsNamesArray = explode(',', $this->relationsNames);
 
+            // echo '<pre>'.$this->relationsNames.'</pre>';
+            // echo '<pre>'.print_r($this->relationsNamesArray).'</pre>';
 
-            $relationsFieldsLocal = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getLazyLoadRelationsipFields($this->eagerRelationshipsLoad);
+            $relationsFieldsLocal = $modelGenerator->getLazyLoadRelationsipFields($this->eagerRelationshipsLoad);
+            $this->relationsFields = explode(',', $relationsFieldsLocal);
 
-            $this->relationsFields = explode(",", $relationsFieldsLocal);
+            $relationsTableColumnNameLocal = $modelGenerator->getLazyLoadRelationsipFields($this->eagerRelationshipsLoad, true);
+            $this->relationsTableColumnNamesArray = $relationsTableColumnNameLocal;
         }
 
         // echo " ...ends at ".date('d-M-Y H:i:s');
     }
+
     /**
      * Build the replacement.
      *
@@ -145,19 +155,19 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         $properties = '*';
 
         if ($this->addRelationshipDataInView == 'yes') {
-            $relationsModelsLocal = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getLazyLoadRelationsipsTables($this->eagerRelationshipsLoad);
-            $this->relationsModelsArray = explode(",", $relationsModelsLocal);
+            $modelGenerator = (new ModelGenerator($this->table, $properties, $this->modelNamespace));
+            $relationsModelsLocal = $modelGenerator->getLazyLoadRelationsipsTables($this->eagerRelationshipsLoad);
+            $this->relationsModelsArray = explode(',', $relationsModelsLocal);
 
             foreach ($this->relationsModelsArray as $key => $relationshipmodel) {
                 $relationshipmodel = trim($relationshipmodel);
-                $this->relationsModels  .= "\n" . "use " . $this->modelNamespace . "\\" . $relationshipmodel . ";";
-                $this->relationsModelsArray[$key] = "$" . $relationshipmodel;
+                $this->relationsModels .= "\n".'use '.$this->modelNamespace.'\\'.$relationshipmodel.';';
+                $this->relationsModelsArray[$key] = '$'.$relationshipmodel;
             }
         }
 
         // echo " ...ends at ".date('d-M-Y H:i:s');
     }
-
 
     /**
      * Generate the controller.
@@ -182,14 +192,10 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Build the directory if necessary.
-     *
-     * @param  string  $path
-     *
-     * @return string
      */
     protected function makeDirectory(string $path): string
     {
-        if (!$this->files->isDirectory(dirname($path))) {
+        if (! $this->files->isDirectory(dirname($path))) {
             $this->files->makeDirectory(dirname($path), 0777, true, true);
         }
 
@@ -198,9 +204,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Write the file/Class.
-     *
-     * @param $path
-     * @param $content
      */
     protected function write($path, $content): void
     {
@@ -212,10 +215,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
     /**
      * Get the stub file.
      *
-     * @param  string  $type
-     * @param  boolean  $content
      *
-     * @return string
      * @throws FileNotFoundException
      */
     protected function getStub(string $type, bool $content = true): string
@@ -223,94 +223,55 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         $stub_path = config('crud.stub_path', 'default');
 
         if (blank($stub_path) || $stub_path == 'default') {
-            $stub_path = __DIR__ . '/../stubs/';
+            $stub_path = __DIR__.'/../stubs/';
         }
 
-        $path = Str::finish($stub_path, '/') . "$type.stub";
+        $path = Str::finish($stub_path, '/')."$type.stub";
 
-        if (!$content) {
+        if (! $content) {
             return $path;
         }
 
         return $this->files->get($path);
     }
 
-    /**
-     * @param  int  $no
-     *
-     * @return string
-     */
     private function _getSpace(int $no = 1): string
     {
         return str_repeat("\t", $no);
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getControllerPath($name): string
     {
-        return app_path($this->_getNamespacePath($this->controllerNamespace) . "{$name}Controller.php");
+        return app_path($this->_getNamespacePath($this->controllerNamespace)."{$name}Controller.php");
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getApiControllerPath($name): string
     {
-        return app_path($this->_getNamespacePath($this->apiControllerNamespace) . "{$name}Controller.php");
+        return app_path($this->_getNamespacePath($this->apiControllerNamespace)."{$name}Controller.php");
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getResourcePath($name): string
     {
-        return app_path($this->_getNamespacePath($this->resourceNamespace) . "{$name}Resource.php");
+        return app_path($this->_getNamespacePath($this->resourceNamespace)."{$name}Resource.php");
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getLivewirePath($name): string
     {
-        return app_path($this->_getNamespacePath($this->livewireNamespace) . "{$name}.php");
+        return app_path($this->_getNamespacePath($this->livewireNamespace)."{$name}.php");
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getRequestPath($name): string
     {
-        return app_path($this->_getNamespacePath($this->requestNamespace) . "{$name}Request.php");
+        return app_path($this->_getNamespacePath($this->requestNamespace)."{$name}Request.php");
     }
 
-    /**
-     * @param $name
-     *
-     * @return string
-     */
     protected function _getModelPath($name): string
     {
-        return $this->makeDirectory(app_path($this->_getNamespacePath($this->modelNamespace) . "$name.php"));
+        return $this->makeDirectory(app_path($this->_getNamespacePath($this->modelNamespace)."$name.php"));
     }
 
     /**
      * Get the path from namespace.
-     *
-     * @param $namespace
-     *
-     * @return string
      */
     private function _getNamespacePath($namespace): string
     {
@@ -321,19 +282,12 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Get the default layout path.
-     *
-     * @return string
      */
     private function _getLayoutPath(): string
     {
-        return $this->makeDirectory(resource_path("/views/layouts/app.blade.php"));
+        return $this->makeDirectory(resource_path('/views/layouts/app.blade.php'));
     }
 
-    /**
-     * @param $view
-     *
-     * @return string
-     */
     protected function _getViewPath($view): string
     {
         $name = Str::kebab($this->name);
@@ -345,10 +299,16 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         return $this->makeDirectory(resource_path($path));
     }
 
+    protected function _getRouteFilePath(): string
+    {
+        $path = 'routes/projectRoutes.php';
+        echo "...\n Project Routes path...".resource_path($path);
+
+        return $this->makeDirectory(resource_path($path));
+    }
+
     /**
      * Build the replacement.
-     *
-     * @return array
      */
     protected function buildReplacements(): array
     {
@@ -372,7 +332,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             '{{lazyLoadRelationships}}' => $this->eagerRelationshipsLoad,
             '{{relationsModels}}' => $this->relationsModels,
 
-
         ];
     }
 
@@ -381,49 +340,71 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         return $this->commandOptions['route'] ?? Str::kebab(Str::plural($this->name));
     }
 
-
     /**
      * Build the form fields for view.
      *
-     * @param $title
-     * @param $column
-     * @param  string  $type
      *
-     * @return string
      * @throws FileNotFoundException
-     *
      */
-    protected function getField($title, $column, string $type = 'form-field'): string
+    protected function getField($title, $column, string $type = 'form-field', string $relationshipFieldName = '', string $columnDBType = ''): string
     {
 
         $replace = array_merge($this->buildReplacements(), [
             '{{title}}' => $title,
+            // '{{column}}' => $column,
+            // '{{column_snake}}' => Str::snake($column),
             '{{column}}' => $column,
+            '{{relationshipColumnName}}' => $relationshipFieldName,
             '{{column_snake}}' => Str::snake($column),
+            '{{column_type}}' => $this->getHtmlInputType($columnDBType),
         ]);
 
-
         $columnName = $column;
-        $columnName =  trim(Str::title(Str::camel(Str::singular(($column)))));
+        $columnName = trim(Str::title(Str::camel(Str::singular(($column)))));
         $found = 0;
-        foreach ($this->relationsNamesArray as $relationship) {
-            $relationship = trim(str_replace('"', "", $relationship));
-            if (strtolower($relationship) == strtolower($columnName)) {
-                $found = 1;
 
-                $replace = array_merge($this->buildReplacements(), [
-                    '{{title}}' => $title,
-                    '{{column}}' => $column,
-                    '{{column_snake}}' => Str::snake($column),
-                    '{{columnName}}' => $columnName,
-                ]);
-                break;
-            }
+        if ($relationshipFieldName != '') {
+            $found = 1;
+            $replace = array_merge($this->buildReplacements(), [
+                '{{title}}' => $title,
+                // '{{column}}' => $column,
+                // '{{column_snake}}' => Str::snake($column),
+                '{{column}}' => $column,
+                '{{relationshipColumnName}}' => $relationshipFieldName,
+                '{{column_snake}}' => Str::snake($column),
+                '{{column_type}}' => $this->getHtmlInputType($columnDBType),
+                '{{columnName}}' => $columnName.'s',
+            ]);
         }
 
+        /*
+        $columnName = $column['name'];
+         $columnName = trim(Str::title(Str::camel(Str::singular(($column['name'])))));
+         $found = 0;
+        $columnNameCheck = str_replace('_id', '', $column['name']);
+         foreach ($this->relationsNamesArray as $relationship) {
+             $relationship = trim(str_replace('"', '', $relationship));
+             $relationship = Str::camel($relationship).'s';
+             if (strtolower($relationship) == strtolower($columnNameCheck)) {
+                 $found = 1;
 
-        if ($found == 1) {;
-            $type = "view-field-relationship";
+                 $replace = array_merge($this->buildReplacements(), [
+                     '{{title}}' => $title,
+                     // '{{column}}' => $column,
+                     // '{{column_snake}}' => Str::snake($column),
+                     '{{column}}' => $column['name'],
+                     '{{relationshipColumnName}}' => $relationshipFieldName,
+                     '{{column_snake}}' => Str::snake($column['name']),
+                     '{{column_type}}' => $this->getHtmlInputType($column['type_name']),
+                     '{{columnName}}' => $columnName.'s',
+                 ]);
+                 break;
+             }
+         }*/
+
+        if ($found == 1) {
+            $type = 'view-field-relationship';
+
             return str_replace(
                 array_keys($replace),
                 array_values($replace),
@@ -438,24 +419,22 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         }
     }
 
-
     /**
      * Build the form fields for form.
      *
-     * @param $title
-     * @param $column
-     * @param  string  $type
      *
-     * @return string
      * @throws FileNotFoundException
-     *
      */
-    protected function getFieldControl($title, $column, string $type = 'form-field', $relationshipName = ""): string
+    protected function getFieldControl($title, $column, string $type = 'form-field', $relationshipName = '', string $relationshipFieldName = ''): string
     {
         $replace = array_merge($this->buildReplacements(), [
             '{{title}}' => $title,
-            '{{column}}' => $column,
-            '{{column_snake}}' => Str::snake($column),
+            // '{{column}}' => $column,
+            // '{{column_snake}}' => Str::snake($column),
+            '{{column}}' => $column['name'],
+            '{{relationshipColumnName}}' => $relationshipFieldName,
+            '{{column_snake}}' => Str::snake($column['name']),
+            '{{column_type}}' => $this->getHtmlInputType($column['type_name']),
             '{{relationshipName}}' => $relationshipName,
         ]);
 
@@ -466,11 +445,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         );
     }
 
-    /**
-     * @param $title
-     *
-     * @return string
-     */
     protected function getHead($title): string
     {
         $replace = array_merge($this->buildReplacements(), [
@@ -478,7 +452,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         ]);
 
         $attr = match ($this->commandOptions['stack']) {
-            'tailwind' => 'class="px-3.5 py-2.5 first:pl-5 last:pr-5 font-semibold border-b border-slate-200 dark:border-zink-500 ' . Str::ucfirst(Str::camel($title)) . '"',
+            'tailwind' => 'class="px-3.5 py-2.5 first:pl-5 last:pr-5 font-semibold border-b border-slate-200 dark:border-zink-500 '.Str::ucfirst(Str::camel($title)).'"',
             'livewire' => 'scope="col" class="py-3 pl-4 pr-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"',
             default => ''
         };
@@ -486,59 +460,65 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         return str_replace(
             array_keys($replace),
             array_values($replace),
-            $this->_getSpace(9) . '<th ' . $attr . '>{{title}}</th>' . "\n"
+            $this->_getSpace(9).'<th '.$attr.'>{{title}}</th>'."\n"
         );
     }
 
-    /**
-     * @param $column
-     *
-     * @return string
-     */
-    protected function getBody($column): string
+    protected function getBody($column, $relationshipFieldName = ''): string
     {
         $replace = array_merge($this->buildReplacements(), [
             '{{column}}' => $column,
         ]);
 
         $attr = match ($this->commandOptions['stack']) {
-            'tailwind' => 'class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 ' . Str::ucfirst(Str::camel($column)) . '"',
+            'tailwind' => 'class="px-3.5 py-2.5 first:pl-5 last:pr-5 border-y border-slate-200 dark:border-zink-500 '.Str::ucfirst(Str::camel($column)).'"',
             'livewire' => 'class="whitespace-nowrap px-3 py-4 text-sm text-gray-500"',
             default => ''
         };
 
         $columnName = $column;
-        $columnName =  trim(Str::title(Str::camel(Str::singular(($column)))));
+        $columnName = trim(Str::title(Str::camel(Str::singular(($column)))));
+        $found = 0;
+        if ($relationshipFieldName != '') {
+            $found = 1;
+            $replace = array_merge($this->buildReplacements(), [
+                '{{column}}' => $column,
+                '{{columnName}}' => $columnName.'s',
+                '{{name}}' => $relationshipFieldName,
+            ]);
+        }
 
-
-
+        /*$columnName = $column;
+        $columnName = trim(Str::title(Str::camel(Str::singular(($column)))));
 
         $found = 0;
         foreach ($this->relationsNamesArray as $relationship) {
-            $relationship = trim(str_replace('"', "", $relationship));
-            if (strtolower($relationship) == strtolower($columnName)) {
+            $relationship = trim(str_replace('"', '', $relationship));
+            $relationship = Str::camel($relationship).'s';
+            if (strtolower($relationship) == strtolower($columnName.'s')) {
                 $found = 1;
 
                 $replace = array_merge($this->buildReplacements(), [
                     '{{column}}' => $column,
-                    '{{columnName}}' => $columnName,
-                    '{{name}}' => "name",
+                    '{{columnName}}' => $columnName.'s',
+                    // '{{name}}' => 'name',
+                    '{{name}}' => $relationshipFieldName,
                 ]);
                 break;
             }
-        }
-        if ($found == 1) {;
+        }*/
+        if ($found == 1) {
 
             return str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->_getSpace(10) . '<td ' . $attr . '>{{ ${{modelNameLowerCase}}->{{columnName}}->{{name}} }}</td>' . "\n"
+                $this->_getSpace(10).'<td '.$attr.'>{{ ${{modelNameLowerCase}}->{{columnName}}->{{name}} }}</td>'."\n"
             );
         } else {
             return str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->_getSpace(10) . '<td ' . $attr . '>{{ ${{modelNameLowerCase}}->{{column}} }}</td>' . "\n"
+                $this->_getSpace(10).'<td '.$attr.'>{{ ${{modelNameLowerCase}}->{{column}} }}</td>'."\n"
             );
         }
     }
@@ -550,8 +530,8 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
      */
     protected function buildLayout(): void
     {
-        if ($this->createLayout == "yes") {
-            if (!(view()->exists($this->layout))) {
+        if ($this->createLayout == 'yes') {
+            if (! (view()->exists($this->layout))) {
 
                 $this->info('Creating Layout ...');
 
@@ -563,7 +543,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
                     default => 'laravel/ui'
                 };
 
-                if (!$this->requireComposerPackages([$uiPackage], true)) {
+                if (! $this->requireComposerPackages([$uiPackage], true)) {
                     throw new Exception("Unable to install $uiPackage. Please install it manually");
                 }
 
@@ -582,8 +562,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Get the DB Table columns.
-     *
-     * @return array|null
      */
     protected function getColumns(): ?array
     {
@@ -594,27 +572,53 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         return $this->tableColumns;
     }
 
-    /**
-     * @return array
-     */
     protected function getFilteredColumns(): array
     {
         $unwanted = $this->unwantedColumns;
-        $columns = [];
+        /*$columns = [];
 
         foreach ($this->getColumns() as $column) {
             $columns[] = $column['name'];
-        }
+        }*/
+        $columns = $this->getColumns();
 
-        return array_filter($columns, function ($value) use ($unwanted) {
-            return !in_array($value, $unwanted);
+        /*return array_filter($columns, function ($value) use ($unwanted) {
+            return ! in_array($value, $unwanted);
+        });*/
+        return array_filter($columns, function ($column) use ($unwanted) {
+            return ! in_array($column['name'], $unwanted);
         });
+    }
+
+    protected function getHtmlInputType(string $columnType): string
+    {
+        $mapping = [
+            'string' => 'text',
+            'text' => 'textarea',
+            'longtext' => 'textarea',
+            'integer' => 'number',
+            'smallint' => 'number',
+            'bigint' => 'number',
+            'decimal' => 'number',
+            'float' => 'number',
+            'datetime' => 'datetime-local',
+            'timestamp' => 'datetime-local',
+            'date' => 'date',
+            'time' => 'time',
+            'boolean' => 'checkbox',
+            'blob' => 'file',
+            'bytea' => 'file',
+            'varbinary' => 'file',
+            'binary' => 'file',
+            'enum' => 'select',
+            // Add other mappings as necessary
+        ];
+
+        return $mapping[$columnType] ?? 'text';
     }
 
     /**
      * Make model attributes/replacements.
-     *
-     * @return array
      */
     protected function modelReplacements(): array
     {
@@ -625,15 +629,30 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
         $softDeletesNamespace = $softDeletes = '';
         $modelName = Str::camel($this->name);
 
-        foreach ($this->getColumns() as $column) {
+        $modelTableName = $this->table;
+
+        $allColumns = $this->getColumns();
+
+        $indexes = collect(Schema::getIndexes($this->table));
+        // echo '<pre>'.print_r($allColumns, true).'</pre>';
+        // echo '<pre>'.print_r($indexes, true).'</pre>';
+        // exit;
+
+        $uniqueRule = [];
+        $uniqueFieldName = [];
+        foreach ($allColumns as $column) {
             $properties .= "\n * @property \${$column['name']}";
 
-            if (!in_array($column['name'], $this->unwantedColumns)) {
+            // echo '<pre>'.print_r($column, true).'</pre>';
+
+            $isUniqueColumnField = $this->getUniqueIndexField($indexes, $column['name']);
+
+            if (! in_array($column['name'], $this->unwantedColumns)) {
                 $livewireFormProperties .= "\n    public \${$column['name']} = '';";
                 $livewireFormSetValues .= "\n        \$this->{$column['name']} = \$this->{$modelName}Model->{$column['name']};";
             }
 
-            if (!$column['nullable']) {
+            if (! $column['nullable']) {
                 $rulesArray[$column['name']] = ['required'];
             }
 
@@ -649,19 +668,36 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
                 $rulesArray[$column['name']][] = 'string';
             }
 
+            if ($isUniqueColumnField) {
+                $uniqueFieldName[$column['name']] = $column['name'];
+                $uniqueRule[$column['name']] = '|unique:'.$this->table.','.$column['name'];
+            } else {
+                $uniqueFieldName[$column['name']] = '';
+                $uniqueRule[$column['name']] = '';
+            }
+
             if ($column['name'] == 'deleted_at') {
                 $softDeletesNamespace = "use Illuminate\Database\Eloquent\SoftDeletes;\n";
                 $softDeletes = "use SoftDeletes;\n";
             }
         }
 
-        $rules = function () use ($rulesArray) {
+        $rules = function () use ($rulesArray, $uniqueRule, $uniqueFieldName) {
             $rules = '';
             // Exclude the unwanted rulesArray
             $rulesArray = Arr::except($rulesArray, $this->unwantedColumns);
             // Make rulesArray
             foreach ($rulesArray as $col => $rule) {
-                $rules .= "\n\t\t\t'$col' => '" . implode('|', $rule) . "',";
+                $uniqueString = '';
+                if ($uniqueFieldName[$col] != '') {
+                    $uniqueString = $uniqueRule[$col];
+                }
+                if ($uniqueString != '') {
+                    $rules .= "\n\t\t\t'$col' => '".implode('|', $rule).$uniqueString.",'.$".'this->id';
+                } else {
+
+                    $rules .= "\n\t\t\t'$col' => '".implode('|', $rule)."',";
+                }
             }
 
             return $rules;
@@ -673,7 +709,8 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
             // Add quotes to the unwanted columns for fillable
             array_walk($filterColumns, function (&$value) {
-                $value = "'" . $value . "'";
+                //$value = "'".$value."'";
+                $value = "'".$value['name']."'";
             });
 
             // CSV format
@@ -684,6 +721,8 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
         [$relations, $properties] = (new ModelGenerator($this->table, $properties, $this->modelNamespace))->getEloquentRelations();
 
+        $timestampColumns = ($this->requireTimestamp()) ? 'true' : 'false';
+
         return [
             '{{fillable}}' => $fillable(),
             '{{rules}}' => $rules(),
@@ -693,13 +732,35 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             '{{softDeletes}}' => $softDeletes,
             '{{livewireFormProperties}}' => $livewireFormProperties,
             '{{livewireFormSetValues}}' => $livewireFormSetValues,
+            '{{timestampColumns}}' => $timestampColumns,
+            '{{modelTableName}}' => $modelTableName,
         ];
+    }
+
+    private function getUniqueIndexField($indexes, $column)
+    {
+        $isUnique = false;
+
+        foreach ($indexes as $index) {
+            if ((count($index['columns']) == 1) && ($index['columns'][0] == $column) && $index['unique']) {
+                $isUnique = true;
+                break;
+            }
+        }
+
+        return $isUnique;
     }
 
     /**
      * Get the desired class name from the input.
-     *
-     * @return string
+     */
+    protected function requireTimestamp(): bool
+    {
+        return Schema::hasColumn($this->table, 'created_at') && Schema::hasColumn($this->table, 'updated_at') && Schema::hasColumn($this->table, 'deleted_at');
+    }
+
+    /**
+     * Get the desired class name from the input.
      */
     protected function getNameInput(): string
     {
@@ -714,9 +775,7 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
     protected function buildOptions(): static
     {
 
-
         $options = $this->options();
-
 
         $this->commandOptions['route'] = null;
 
@@ -743,8 +802,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Get the console command arguments.
-     *
-     * @return array
      */
     protected function getArguments(): array
     {
@@ -760,10 +817,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Installs the given Composer Packages into the application.
-     *
-     * @param  array  $packages
-     * @param  bool  $asDev
-     * @return bool
      */
     protected function requireComposerPackages(array $packages, bool $asDev = false): bool
     {
@@ -782,9 +835,6 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
 
     /**
      * Run the given commands.
-     *
-     * @param  array  $commands
-     * @return void
      */
     protected function runCommands(array $commands): void
     {
@@ -794,12 +844,12 @@ abstract class GeneratorCommand extends Command implements PromptsForMissingInpu
             try {
                 $process->setTty(true);
             } catch (RuntimeException $e) {
-                $this->output->writeln('  <bg=yellow;fg=black> WARN </> ' . $e->getMessage() . PHP_EOL);
+                $this->output->writeln('  <bg=yellow;fg=black> WARN </> '.$e->getMessage().PHP_EOL);
             }
         }
 
         $process->run(function ($type, $line) {
-            $this->output->write('    ' . $line);
+            $this->output->write('    '.$line);
         });
     }
 }

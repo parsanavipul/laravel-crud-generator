@@ -7,6 +7,7 @@ use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+
 use function Laravel\Prompts\select;
 
 /**
@@ -22,9 +23,9 @@ class CrudGenerator extends GeneratorCommand
      * @var string
      */
     protected $signature = 'make:crud
-                            {name : Table name}                            
-                            {--stack= : The development stack that should be installed (bootstrap,tailwind,livewire)}                           
-                            {--generateValidation= : create validation request (yes or no)}                           
+                            {name : Table name}
+                            {--stack= : The development stack that should be installed (bootstrap,tailwind,livewire)}
+                            {--generateValidation= : create validation request (yes or no)}
                             {--route= : Custom route name}
                             {--api= : Generate API (yes or no)}';
 
@@ -47,13 +48,11 @@ class CrudGenerator extends GeneratorCommand
         $this->table = $this->getNameInput();
 
         // If table not exist in DB return
-        if (!$this->tableExists()) {
+        if (! $this->tableExists()) {
             $this->error("`$this->table` table not exist");
 
             return false;
         }
-
-
 
         $this->getRlationships();
         $this->getRlationshipsTables();
@@ -62,8 +61,8 @@ class CrudGenerator extends GeneratorCommand
 
         // Generate the crud
         $this->buildOptions()
-            ->buildController()
-            ->buildModel()
+            // ->buildController()
+            // ->buildModel()
             ->buildViews()
             ->writeRoute();
 
@@ -118,21 +117,21 @@ class CrudGenerator extends GeneratorCommand
 
         $lines = [];
 
-        if ($this->commandOptions['stack'] == "livewire") {
-            $lines =  [
+        if ($this->commandOptions['stack'] == 'livewire') {
+            $lines = [
                 "Route::get('/{$this->_getRoute()}', \\$this->livewireNamespace\\{$replacements['{{modelNamePluralUpperCase}}']}\Index::class)->name('{$this->_getRoute()}.index');",
                 "Route::get('/{$this->_getRoute()}/create', \\$this->livewireNamespace\\{$replacements['{{modelNamePluralUpperCase}}']}\Create::class)->name('{$this->_getRoute()}.create');",
                 "Route::get('/{$this->_getRoute()}/show/{{$replacements['{{modelNameLowerCase}}']}}', \\$this->livewireNamespace\\{$replacements['{{modelNamePluralUpperCase}}']}\Show::class)->name('{$this->_getRoute()}.show');",
                 "Route::get('/{$this->_getRoute()}/update/{{$replacements['{{modelNameLowerCase}}']}}', \\$this->livewireNamespace\\{$replacements['{{modelNamePluralUpperCase}}']}\Edit::class)->name('{$this->_getRoute()}.edit');",
             ];
-        } else if ($this->commandOptions['api'] == "yes") {
-            $lines =  [
-                "Route::apiResource('" . $this->_getRoute() . "', {$this->name}Controller::class);",
-                "Route::resource('" . $this->_getRoute() . "', {$this->name}Controller::class);",
+        } elseif ($this->commandOptions['api'] == 'yes') {
+            $lines = [
+                "Route::apiResource('".$this->_getRoute()."', {$this->name}Controller::class);",
+                "Route::resource('".$this->_getRoute()."', {$this->name}Controller::class);",
             ];
         } else {
-            $lines =  [
-                "Route::resource('" . $this->_getRoute() . "', {$this->name}Controller::class);",
+            $lines = [
+                "Route::resource('".$this->_getRoute()."', {$this->name}Controller::class);",
             ];
         }
 
@@ -151,9 +150,14 @@ class CrudGenerator extends GeneratorCommand
             ]
         };*/
 
+        $routePath = $this->_getRouteFilePath();
+        $routeFile = fopen($routePath, 'a+');
+
         foreach ($lines as $line) {
-            $this->info('<bg=blue;fg=white>' . $line . '</>');
+            $this->info('<bg=blue;fg=white>'.$line.'</>');
+            fwrite($routeFile, "\n".$line);
         }
+        fclose($routeFile);
 
         $this->info('');
 
@@ -164,6 +168,7 @@ class CrudGenerator extends GeneratorCommand
      * Build the Controller Class and save in app/Http/Controllers.
      *
      * @return $this
+     *
      * @throws FileNotFoundException
      */
     protected function buildController(): static
@@ -179,7 +184,9 @@ class CrudGenerator extends GeneratorCommand
         // echo "\n...generate API..." . $this->commandOptions['api'] . "\n";
 
         $apiControllerPath = $this->_getApiControllerPath($this->name);
-        $apistubFolder =  'api/';
+        $apistubFolder = 'api/';
+
+        $this->info('Creating Controller ...');
 
         $controllerPath = $this->_getControllerPath($this->name);
 
@@ -187,45 +194,38 @@ class CrudGenerator extends GeneratorCommand
             return $this;
         }
 
-        $this->info('Creating Controller ...');
-
         $replace = $this->buildReplacements();
 
-        $stubFolder =  '';
+        $stubFolder = '';
 
-        $modelData = "";
-        $modelVariables = "";
+        $modelData = '';
+        $modelVariables = '';
         foreach ($this->relationsModelsArray as $modelName) {
-            $modelName = trim(str_replace("$", "", trim($modelName)));
-            $modelVariables .= "'" . Str::camel($modelName) . "s',";
-            $modelData .= "\n " . "$" . Str::camel($modelName) . "s=" . str_replace("$", "", trim($modelName)) . "::get();";
+            $modelName = trim(str_replace('$', '', trim($modelName)));
+            $modelVariables .= "'".Str::camel($modelName)."s',";
+            $modelData .= "\n ".'$'.Str::camel($modelName).'s='.str_replace('$', '', trim($modelName)).'::get();';
         }
         $modelVariables = rtrim($modelVariables, ',');
 
-
-
-
-        $relationsLoad = array(
+        $relationsLoad = [
 
             '{{relationsCompact}}' => $modelVariables,
             '{{relationsData}}' => $modelData,
 
-        );
+        ];
         $replace = array_merge($relationsLoad, $this->buildReplacements());
-
 
         // echo "<pre>" . print_r($replace, true) . "</pre>";
         // exit;
 
         if ($this->commandOptions['api'] == 'yes') {
 
-
-            if ($this->commandOptions['generateValidation'] == "yes") {
+            if ($this->commandOptions['generateValidation'] == 'yes') {
                 /* use validation controller request stub */
                 $controllerTemplate = str_replace(
                     array_keys($replace),
                     array_values($replace),
-                    $this->getStub($apistubFolder . 'ControllerValidate')
+                    $this->getStub($apistubFolder.'ControllerValidate')
                 );
                 $this->write($apiControllerPath, $controllerTemplate);
             } else {
@@ -234,32 +234,29 @@ class CrudGenerator extends GeneratorCommand
                 $controllerTemplate = str_replace(
                     array_keys($replace),
                     array_values($replace),
-                    $this->getStub($apistubFolder . 'Controller')
+                    $this->getStub($apistubFolder.'Controller')
                 );
                 $this->write($apiControllerPath, $controllerTemplate);
             }
-
 
             $resourcePath = $this->_getResourcePath($this->name);
             $resourceTemplate = str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->getStub($apistubFolder . 'Resource')
+                $this->getStub($apistubFolder.'Resource')
             );
             $this->write($resourcePath, $resourceTemplate);
         }
 
-
-        if ($this->commandOptions['generateValidation'] == "yes") {
+        if ($this->commandOptions['generateValidation'] == 'yes') {
 
             /* use validation controller request stub */
             $controllerTemplate = str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->getStub($stubFolder . 'ControllerValidate')
+                $this->getStub($stubFolder.'ControllerValidate')
             );
             $this->write($controllerPath, $controllerTemplate);
-
 
             // Make Request Class
             $replace = array_merge($this->buildReplacements(), $this->modelReplacements());
@@ -278,12 +275,10 @@ class CrudGenerator extends GeneratorCommand
             $controllerTemplate = str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->getStub($stubFolder . 'Controller')
+                $this->getStub($stubFolder.'Controller')
             );
             $this->write($controllerPath, $controllerTemplate);
         }
-
-
 
         return $this;
     }
@@ -296,19 +291,19 @@ class CrudGenerator extends GeneratorCommand
         $replace = array_merge($this->buildReplacements(), $this->modelReplacements());
 
         foreach (['Index', 'Show', 'Edit', 'Create'] as $component) {
-            $componentPath = $this->_getLivewirePath($folder . '/' . $component);
+            $componentPath = $this->_getLivewirePath($folder.'/'.$component);
 
             $componentTemplate = str_replace(
                 array_keys($replace),
                 array_values($replace),
-                $this->getStub('livewire/' . $component)
+                $this->getStub('livewire/'.$component)
             );
 
             $this->write($componentPath, $componentTemplate);
         }
 
         // Form
-        $formPath = $this->_getLivewirePath('Forms/' . $this->name . 'Form');
+        $formPath = $this->_getLivewirePath('Forms/'.$this->name.'Form');
 
         $componentTemplate = str_replace(
             array_keys($replace),
@@ -321,18 +316,19 @@ class CrudGenerator extends GeneratorCommand
 
     /**
      * @return $this
-     * @throws FileNotFoundException
      *
+     * @throws FileNotFoundException
      */
     protected function buildModel(): static
     {
+
+        $this->info('Creating Model ...');
+
         $modelPath = $this->_getModelPath($this->name);
 
         if ($this->files->exists($modelPath) && $this->ask('Already exist Model. Do you want overwrite (y/n)?', 'y') == 'n') {
             return $this;
         }
-
-        $this->info('Creating Model ...');
 
         // Make the models attributes and replacement
         $replace = array_merge($this->buildReplacements(), $this->modelReplacements());
@@ -345,19 +341,18 @@ class CrudGenerator extends GeneratorCommand
 
         $this->write($modelPath, $modelTemplate);
 
-
-
         return $this;
     }
 
     /**
      * @return $this
-     * @throws FileNotFoundException
      *
+     * @throws FileNotFoundException
      * @throws Exception
      */
     protected function buildViews(): static
     {
+
         if ($this->commandOptions['stack'] == 'api') {
             return $this;
         }
@@ -368,27 +363,54 @@ class CrudGenerator extends GeneratorCommand
         $tableBody = "\n";
         $viewRows = "\n";
         $form = "\n";
+        $allColumns = $this->getFilteredColumns();
+        $relationsTableColumnNamesArray = $this->relationsTableColumnNamesArray;
 
-        foreach ($this->getFilteredColumns() as $column) {
+        // echo '<pre>All Columns...'.print_r($allColumns, true).'</pre>';
+        // echo '\n\n <pre>Relationship Columns....'.print_r($relationsTableColumnNamesArray, true).'</pre>';
+        // echo '\n\n <pre>Relationship Fields'.print_r($this->relationsFields, true).'</pre>';
 
+        foreach ($allColumns as $column) {
 
-            $title = Str::title(str_replace('_', ' ', $column));
+            // $title = Str::title(str_replace('_', ' ', $column));
+            $title = Str::title(str_replace('_', ' ', $column['name']));
+
             $tableHead .= $this->getHead($title);
-            $tableBody .= $this->getBody($column);
-            $viewRows .= $this->getField($title, $column, 'view-field');
+            // $tableBody .= $this->getBody($column);
 
             // echo "\n $column";
+            $columnDBType = $column['type_name'];
 
-            if (in_array($column, $this->relationsFields)) {
-                $relationshipName = Str::ucfirst(Str::camel($column));
-                $relationData = Str::camel($relationshipName) . "s";
-                // echo "\n $column";
-                // echo "\n" . $relationData;
-                $form .= $this->getFieldControl($title, $column, "select", $relationData);
+            $columnNameCheck = str_replace('_id', '', $column['name']);
+
+            // echo "\n Column name".$column['name'].'....Check Name...'.$columnNameCheck;
+            // echo '<pre>'.print_r($this->relationsFields, true).'</pre>';
+
+            $columnKey = array_search($columnNameCheck, $this->relationsFields);
+            // echo "\n.....Column Key...".$columnKey;
+            // if (in_array($columnNameCheck, $this->relationsFields)) {
+            if ($columnKey !== false) {
+
+                // $key = array_search($columnNameCheck, $this->relationsFields);
+                // echo '\n Relationship main table column key...'.$columnKey.'....Column Name...'.$relationsTableColumnNamesArray[$columnKey]['name'];
+
+                $relationshipName = Str::ucfirst(Str::camel($columnNameCheck));
+                $relationData = Str::camel($relationshipName).'s';
+
+                // echo "\n Column...".$column['name'];
+                // echo "\n Relation Data...".$relationData;
+
+                $form .= $this->getFieldControl($title, $column, 'select', $relationData, $relationsTableColumnNamesArray[$columnKey]['name']);
+                $tableBody .= $this->getBody($columnNameCheck, $relationsTableColumnNamesArray[$columnKey]['name']);
+                $viewRows .= $this->getField($title, $columnNameCheck, 'view-field', $relationsTableColumnNamesArray[$columnKey]['name'], $columnDBType);
             } else {
-                $form .= $this->getField($title, $column);
+                $form .= $this->getFieldControl($title, $column, 'form-field', '', '');
+                $tableBody .= $this->getBody($column['name'], '');
+                $viewRows .= $this->getField($title, $columnNameCheck, 'view-field', '', $columnDBType);
             }
         }
+
+        // return $this;
         $replace = array_merge($this->buildReplacements(), [
             '{{tableHeader}}' => $tableHead,
             '{{tableBody}}' => $tableBody,
@@ -405,6 +427,12 @@ class CrudGenerator extends GeneratorCommand
                 $this->getStub("views/{$this->commandOptions['stack']}/$view")
             );
 
+            $viewPath = $this->_getViewPath($view);
+
+            $this->info('Creating '.$view.' View ...');
+            if ($this->files->exists($viewPath) && $this->ask('Already exist View. Do you want overwrite (y/n)?', 'y') == 'n') {
+                return $this;
+            }
             $this->write($this->_getViewPath($view), $viewTemplate);
         }
 
@@ -413,8 +441,6 @@ class CrudGenerator extends GeneratorCommand
 
     /**
      * Make the class name from table name.
-     *
-     * @return string
      */
     private function _buildClassName(): string
     {
